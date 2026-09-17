@@ -5,8 +5,7 @@ const PORT = process.env.PORT || 8080;
 const rooms = new Map();
 
 function code(){
-  const chars="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  let c=""; do { c=""; for(let i=0;i<6;i++) c+=chars[Math.floor(Math.random()*chars.length)]; } while(rooms.has(c));
+  let c=""; do { c=String(Math.floor(1000 + Math.random()*9000)); } while(rooms.has(c));
   return c;
 }
 function send(ws,msg){ if(ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify(msg)); }
@@ -27,7 +26,8 @@ wss.on("connection",ws=>{
       send(ws,{type:"welcome",room:id,role:1}); return;
     }
     if(m.type==="join" && !player){
-      const id=String(m.room||"").toUpperCase(), room=rooms.get(id);
+      const id=String(m.room||"").replace(/\D/g,"").slice(0,4), room=rooms.get(id);
+      if(!/^\d{4}$/.test(id)){send(ws,{type:"error",message:"4자리 숫자 방 코드를 입력해주세요."});return}
       if(!room){send(ws,{type:"error",message:"방을 찾을 수 없습니다."});return}
       if(room.players.length>=2){send(ws,{type:"error",message:"방이 가득 찼습니다."});return}
       player={ws,room:id,role:2}; room.players.push(player); send(ws,{type:"welcome",room:id,role:2}); broadcast(room,{type:"peer_joined"},ws); return;
