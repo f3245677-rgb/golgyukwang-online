@@ -47,7 +47,7 @@ wss.on("connection",ws=>{
     }
     if(!player)return;
     const room=rooms.get(player.room); if(!room)return;
-    if(["selection","map","input","snapshot","start","game_over","return_select"].includes(m.type)){m.from=player.role;broadcast(room,m,ws);}
+    if(["selection","map","input","snapshot","start"].includes(m.type)){m.from=player.role;broadcast(room,m,ws);}
   });
   ws.on("close",()=>{
     if(!player)return; const room=rooms.get(player.room); if(!room)return;
