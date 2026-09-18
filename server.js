@@ -17,20 +17,7 @@ const server=http.createServer((req,res)=>{
 });
 const wss=new WebSocket.Server({server});
 
-// Render 무료 인스턴스의 WebSocket 유휴 끊김을 막기 위한 heartbeat
-const heartbeat=setInterval(()=>{
-  wss.clients.forEach(ws=>{
-    if(ws.isAlive===false){ try{ws.terminate()}catch(e){}; return; }
-    ws.isAlive=false;
-    try{ws.ping()}catch(e){}
-  });
-},20000);
-wss.on("close",()=>clearInterval(heartbeat));
-
-
 wss.on("connection",ws=>{
-  ws.isAlive=true;
-  ws.on("pong",()=>{ws.isAlive=true});
   let player=null;
   ws.on("message",raw=>{
     let m; try{m=JSON.parse(raw.toString())}catch(e){return}
