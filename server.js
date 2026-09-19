@@ -17,22 +17,24 @@ const path = require("path");
 const server=http.createServer((req,res)=>{
   const urlPath = (req.url || "/").split("?")[0];
 
+  // Health/status endpoints.
   if(urlPath === "/health" || urlPath === "/api/status"){
     res.writeHead(200,{"content-type":"application/json; charset=utf-8"});
     res.end(JSON.stringify({ok:true,service:"golgyukwang-online",rooms:rooms.size}));
     return;
   }
 
-  let filePath;
-  if(urlPath === "/" || urlPath === "/index.html"){
-    filePath = path.join(__dirname, "index.html");
-  }else{
-    const relativePath = decodeURIComponent(urlPath).replace(/^\\/+/, "");
-    filePath = path.join(__dirname, relativePath);
-  }
+  // Serve the game and its assets from this Render service.
+  const root = path.resolve(__dirname);
+  let relativePath = urlPath === "/" || urlPath === "/index.html"
+    ? "index.html"
+    : decodeURIComponent(urlPath).replace(/^\/+/, "");
 
-  if(!filePath.startsWith(__dirname)){
-    res.writeHead(403); res.end("Forbidden"); return;
+  const filePath = path.resolve(root, relativePath);
+  if(filePath !== root && !filePath.startsWith(root + path.sep)){
+    res.writeHead(403);
+    res.end("Forbidden");
+    return;
   }
 
   fs.stat(filePath,(err,st)=>{
