@@ -11,9 +11,27 @@ function code(){
 function send(ws,msg){ if(ws.readyState===WebSocket.OPEN) ws.send(JSON.stringify(msg)); }
 function broadcast(room,msg,except){ for(const p of room.players) if(p!==except) send(p.ws,msg); }
 
+const fs = require("fs");
+const path = require("path");
+
 const server=http.createServer((req,res)=>{
-  res.writeHead(200,{"content-type":"application/json; charset=utf-8"});
-  res.end(JSON.stringify({ok:true,service:"golgyukwang-online",rooms:rooms.size}));
+  const urlPath=(req.url||"/").split("?")[0];
+  if(urlPath==="/health" || urlPath==="/api/status"){
+    res.writeHead(200,{"content-type":"application/json; charset=utf-8"});
+    res.end(JSON.stringify({ok:true,service:"golgyukwang-online",rooms:rooms.size}));
+    return;
+  }
+  const filePath=urlPath==="/" || urlPath==="/index.html"
+    ? path.join(__dirname,"index.html")
+    : path.join(__dirname,path.normalize(urlPath).replace(/^[/\\]+/,""));
+  if(!filePath.startsWith(__dirname)){res.writeHead(403);res.end("Forbidden");return;}
+  fs.stat(filePath,(err,st)=>{
+    if(err || !st.isFile()){res.writeHead(404,{"content-type":"text/plain; charset=utf-8"});res.end("Not Found");return;}
+    const ext=path.extname(filePath).toLowerCase();
+    const types={".html":"text/html; charset=utf-8",".js":"application/javascript; charset=utf-8",".css":"text/css; charset=utf-8",".json":"application/json; charset=utf-8",".png":"image/png",".jpg":"image/jpeg",".jpeg":"image/jpeg",".gif":"image/gif",".webp":"image/webp",".svg":"image/svg+xml",".ico":"image/x-icon",".wav":"audio/wav",".mp3":"audio/mpeg",".ogg":"audio/ogg"};
+    res.writeHead(200,{"content-type":types[ext]||"application/octet-stream"});
+    fs.createReadStream(filePath).pipe(res);
+  });
 });
 const wss=new WebSocket.Server({server});
 
@@ -47,7 +65,7 @@ wss.on("connection",ws=>{
     }
     if(!player)return;
     const room=rooms.get(player.room); if(!room)return;
-    if(["selection","map","input","snapshot","start"].includes(m.type)){m.from=player.role;broadcast(room,m,ws);}
+    if(["selection","map","input","snapshot","start","game_over"].includes(m.type)){m.from=player.role;broadcast(room,m,ws);}
   });
   ws.on("close",()=>{
     if(!player)return; const room=rooms.get(player.room); if(!room)return;
